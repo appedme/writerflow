@@ -7,6 +7,9 @@ import Header from "@/src/components/Header";
 import Footer from "../components/Footer";
 import siteMetadata from "../utils/siteMetaData";
 import Script from "next/script";
+import { UIProvider } from "@/src/contexts/UIContext";
+import Toast from "@/src/components/UI/Toast";
+import { AuthProvider } from "@/src/components/Auth/AuthProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -65,16 +68,21 @@ export default function RootLayout({ children }) {
           "font-mr bg-light dark:bg-dark"
         )}
       ><StackProvider app={stackServerApp}><StackTheme>
-        <Script id="theme-switcher" strategy="beforeInteractive">
-          {`if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }`}
-        </Script>
-        <Header />
-        {children}
-        <Footer />
+        <UIProvider>
+          <AuthProvider>
+            <Script id="theme-switcher" strategy="beforeInteractive">
+              {`if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }`}
+            </Script>
+            <Header />
+            {children}
+            <Footer />
+            <Toast />
+          </AuthProvider>
+        </UIProvider>
       </StackTheme></StackProvider></body>
     </html>
   );

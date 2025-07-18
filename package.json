@@ -8,19 +8,29 @@
     "postbuild": "next-sitemap",
     "start": "next start",
     "lint": "next lint",
-    "content": "velite --clean"
+    "content": "velite --clean",
+    "db:generate": "node scripts/migrate.js generate",
+    "db:migrate": "node scripts/migrate.js apply",
+    "db:status": "node scripts/migrate.js status",
+    "db:test-connection": "node scripts/test-db-connection.js"
   },
   "dependencies": {
+    "@libsql/client": "^0.15.10",
     "@lottiefiles/dotlottie-react": "^0.12.0",
     "@stackframe/stack": "^2.8.22",
     "@supabase/supabase-js": "^2.47.9",
     "@tailwindcss/forms": "^0.5.5",
     "@tailwindcss/typography": "^0.5.9",
+    "@types/node": "^24.0.14",
     "autoprefixer": "^10.4.20",
+    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.3",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.1",
     "github-slugger": "^2.0.0",
+    "nanoid": "^5.1.5",
     "next": "^15.2.4",
     "next-sitemap": "^4.2.2",
     "postcss": "^8.4.49",
@@ -33,9 +43,11 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.0",
     "shiki": "^1.24.2",
+    "tailwind-merge": "^3.3.1",
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
+    "dotenv": "^16.3.1",
     "encoding": "^0.1.13",
     "sharp": "^0.32.6",
     "velite": "^0.2.1"

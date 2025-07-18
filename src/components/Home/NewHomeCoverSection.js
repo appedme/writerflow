@@ -1,11 +1,13 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react'
+import Tag from '../Elements/Tag';
 import { formatRelativeTime } from '@/src/utils';
 
-const HomeCoverSection = ({posts}) => {
-    if (!posts || posts.length === 0) return null;
-    
-    const featuredPost = posts[0];
+const NewHomeCoverSection = ({posts}) => {
+  if (!posts || posts.length === 0) return null;
+  
+  const featuredPost = posts[0];
 
   return (
     <div className='w-full inline-block'>
@@ -65,4 +67,4 @@ const HomeCoverSection = ({posts}) => {
   )
 }
 
-export default HomeCoverSection
+export default NewHomeCoverSection
