@@ -1,4 +1,6 @@
 import "./globals.css";
+import { StackProvider, StackTheme } from "@stackframe/stack";
+import { stackServerApp } from "../stack";
 import { cx } from "@/src/utils";
 import { Inter, Manrope } from "next/font/google";
 import Header from "@/src/components/Header";
@@ -62,7 +64,7 @@ export default function RootLayout({ children }) {
           manrope.variable,
           "font-mr bg-light dark:bg-dark"
         )}
-      >
+      ><StackProvider app={stackServerApp}><StackTheme>
         <Script id="theme-switcher" strategy="beforeInteractive">
           {`if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     document.documentElement.classList.add('dark')
@@ -73,7 +75,7 @@ export default function RootLayout({ children }) {
         <Header />
         {children}
         <Footer />
-      </body>
+      </StackTheme></StackProvider></body>
     </html>
   );
 }
