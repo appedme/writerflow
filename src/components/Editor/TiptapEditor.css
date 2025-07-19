@@ -1,0 +1,287 @@
+/* TiptapEditor.css */
+.ProseMirror {
+    outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    color: #adb5bd;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+.ProseMirror h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ProseMirror h2 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ProseMirror h3 {
+    font-size: 1.25em;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+.ProseMirror blockquote {
+    border-left: 3px solid #e5e7eb;
+    padding-left: 1rem;
+    font-style: italic;
+}
+
+.ProseMirror ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+}
+
+.ProseMirror ol {
+    list-style-type: decimal;
+    padding-left: 1.5em;
+}
+
+.ProseMirror code {
+    background-color: rgba(97, 97, 97, 0.1);
+    color: #616161;
+    padding: 0.25em;
+    border-radius: 0.25em;
+    font-family: monospace;
+}
+
+.ProseMirror hr {
+    border: none;
+    border-top: 2px solid #e5e7eb;
+    margin: 1em 0;
+}
+
+/* Image styles */
+.ProseMirror img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+    display: block;
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+    outline: 2px solid #60a5fa;
+    border-radius: 0.5rem;
+}
+
+/* Image resizing */
+.image-resizer {
+    display: inline-flex;
+    position: relative;
+    max-width: 100%;
+}
+
+.image-resizer img {
+    max-width: 100%;
+    height: auto;
+}
+
+.image-resizer__handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #60a5fa;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.image-resizer__handle-tl {
+    top: -6px;
+    left: -6px;
+    cursor: nwse-resize;
+}
+
+.image-resizer__handle-tr {
+    top: -6px;
+    right: -6px;
+    cursor: nesw-resize;
+}
+
+.image-resizer__handle-bl {
+    bottom: -6px;
+    left: -6px;
+    cursor: nesw-resize;
+}
+
+.image-resizer__handle-br {
+    bottom: -6px;
+    right: -6px;
+    cursor: nwse-resize;
+}
+
+/* Media embed styles */
+.media-embed {
+    position: relative;
+    padding-bottom: 56.25%;
+    /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+}
+
+.media-embed iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 0.5rem;
+    border: none;
+}
+
+/* Dark mode adjustments */
+.dark .ProseMirror blockquote {
+    border-left-color: #4b5563;
+}
+
+.dark .ProseMirror code {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #e5e7eb;
+}
+
+.dark .ProseMirror hr {
+    border-top-color: #4b5563;
+}
+
+.dark .image-resizer__handle {
+    background-color: #3b82f6;
+    border-color: #1f2937;
+}
+
+/* Code block styles */
+.ProseMirror pre {
+    background-color: #282c34;
+    color: #abb2bf;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    padding: 0.75em 1em;
+    border-radius: 0.5em;
+    overflow-x: auto;
+    margin: 1em 0;
+    position: relative;
+}
+
+.ProseMirror pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.9em;
+    line-height: 1.6;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+}
+
+.code-block-wrapper {
+    position: relative;
+    margin: 1em 0;
+}
+
+/* Syntax highlighting */
+.hljs-comment,
+.hljs-quote {
+    color: #5c6370;
+    font-style: italic;
+}
+
+.hljs-doctag,
+.hljs-keyword,
+.hljs-formula {
+    color: #c678dd;
+}
+
+.hljs-section,
+.hljs-name,
+.hljs-selector-tag,
+.hljs-deletion,
+.hljs-subst {
+    color: #e06c75;
+}
+
+.hljs-literal {
+    color: #56b6c2;
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta-string {
+    color: #98c379;
+}
+
+.hljs-built_in,
+.hljs-class .hljs-title {
+    color: #e6c07b;
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-type,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-number {
+    color: #d19a66;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-title {
+    color: #61aeee;
+}
+
+.hljs-emphasis {
+    font-style: italic;
+}
+
+.hljs-strong {
+    font-weight: bold;
+}
+
+.hljs-link {
+    text-decoration: underline;
+}
+
+/* Dark mode adjustments for code blocks */
+.dark .ProseMirror pre {
+    background-color: #1a1d23;
+    border: 1px solid #2d3139;
+}
+
+/* Language label */
+.code-block-language {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    text-transform: lowercase;
+    user-select: none;
+    transition: opacity 0.2s ease;
+}
+
+.code-block-wrapper:hover .code-block-language {
+    opacity: 1;
+}
+
+.code-block-language {
+    opacity: 0.7;
+}

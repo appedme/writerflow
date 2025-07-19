@@ -1,10 +1,10 @@
-import { redirect } from "next/navigation";
 import { stackServerApp } from "@/src/stack";
 import { db } from "@/src/lib/db";
 import { posts, users } from "@/src/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import Link from "next/link";
 import Button from "@/src/components/UI/Button";
+import PublishToggle from "@/src/components/Blog/PublishToggle";
 import { formatRelativeTime } from "@/src/utils";
 
 export const metadata = {
@@ -20,11 +20,12 @@ async function getUserPosts(userId) {
         title: posts.title,
         slug: posts.slug,
         excerpt: posts.excerpt,
-        status: posts.status,
+        status: posts.published ? "published" : "draft",
         views: posts.views,
         likes: posts.likes,
         readingTime: posts.readingTime,
         publishedAt: posts.publishedAt,
+        scheduledPublishAt: posts.scheduledPublishAt,
         createdAt: posts.createdAt,
         updatedAt: posts.updatedAt,
       })
@@ -41,11 +42,8 @@ async function getUserPosts(userId) {
 }
 
 export default async function DashboardPage() {
+  // The middleware will handle authentication check and redirection
   const user = await stackServerApp.getUser();
-  
-  if (!user) {
-    redirect("/handler/sign-in");
-  }
 
   const userPosts = await getUserPosts(user.id);
 
@@ -63,7 +61,7 @@ export default async function DashboardPage() {
                 Welcome back, {user.displayName || user.primaryEmail}
               </p>
             </div>
-            
+
             <Link href="/write">
               <Button variant="primary" size="lg">
                 Write New Story
@@ -79,21 +77,21 @@ export default async function DashboardPage() {
                 {userPosts.length}
               </p>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Published</h3>
               <p className="text-2xl font-bold text-dark dark:text-light mt-1">
                 {userPosts.filter(post => post.status === "published").length}
               </p>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Views</h3>
               <p className="text-2xl font-bold text-dark dark:text-light mt-1">
                 {userPosts.reduce((sum, post) => sum + (post.views || 0), 0)}
               </p>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Likes</h3>
               <p className="text-2xl font-bold text-dark dark:text-light mt-1">
@@ -109,7 +107,7 @@ export default async function DashboardPage() {
                 Your Stories
               </h2>
             </div>
-            
+
             {userPosts.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="text-gray-400 dark:text-gray-500 mb-4">
@@ -139,21 +137,20 @@ export default async function DashboardPage() {
                           <h3 className="text-lg font-semibold text-dark dark:text-light">
                             {post.title}
                           </h3>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            post.status === "published" 
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                          }`}>
+                          <span className={`px-2 py-1 text-xs rounded-full ${post.status === "published"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                            }`}>
                             {post.status}
                           </span>
                         </div>
-                        
+
                         {post.excerpt && (
                           <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
                             {post.excerpt}
                           </p>
                         )}
-                        
+
                         <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
                           <span>{post.views || 0} views</span>
                           <span>{post.likes || 0} likes</span>
@@ -166,7 +163,7 @@ export default async function DashboardPage() {
                           </span>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2 ml-4">
                         <Link href={`/write/${post.id}`}>
                           <Button variant="ghost" size="sm">
@@ -180,6 +177,7 @@ export default async function DashboardPage() {
                             </Button>
                           </Link>
                         )}
+                        <PublishToggle post={post} />
                       </div>
                     </div>
                   </div>

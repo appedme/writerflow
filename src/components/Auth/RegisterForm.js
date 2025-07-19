@@ -6,6 +6,8 @@ import { useAuth } from "@/src/components/Hooks/useAuth";
 import Button from "@/src/components/UI/Button";
 import Input from "@/src/components/UI/Input";
 import Link from "next/link";
+import { registerUser } from "@/src/lib/actions/users";
+import { useUI } from "@/src/contexts/UIContext";
 
 export default function RegisterForm() {
     const [formData, setFormData] = useState({
@@ -20,6 +22,7 @@ export default function RegisterForm() {
 
     const router = useRouter();
     const { register } = useAuth();
+    const { showToast } = useUI();
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -29,6 +32,9 @@ export default function RegisterForm() {
         if (errors[name]) {
             setErrors((prev) => ({ ...prev, [name]: "" }));
         }
+
+        // Clear server error when user makes changes
+        if (serverError) setServerError("");
     };
 
     const validateForm = () => {
@@ -73,11 +79,35 @@ export default function RegisterForm() {
         setServerError("");
 
         try {
-            await register(formData.email, formData.password, formData.name);
-            router.push("/dashboard");
+            // First, validate the form data using our server action
+            const formDataObj = new FormData();
+            formDataObj.append("name", formData.name);
+            formDataObj.append("email", formData.email);
+            formDataObj.append("password", formData.password);
+            formDataObj.append("confirmPassword", formData.confirmPassword);
+
+            const result = await registerUser(formDataObj);
+
+            if (!result.success) {
+                setServerError(result.error);
+                setIsSubmitting(false);
+                return;
+            }
+
+            // If validation is successful, proceed with Stack authentication
+            const user = await register(formData.email, formData.password, formData.name);
+
+            // Show success toast
+            showToast("Account created successfully! Redirecting to dashboard...", "success", 3000);
+
+            // Redirect after a short delay to show the toast
+            setTimeout(() => {
+                router.push("/dashboard");
+            }, 1000);
         } catch (error) {
             console.error("Registration error:", error);
             setServerError(error.message || "Failed to register. Please try again.");
+            showToast(error.message || "Failed to register. Please try again.", "error", 5000);
         } finally {
             setIsSubmitting(false);
         }
@@ -105,6 +135,7 @@ export default function RegisterForm() {
                         onChange={handleChange}
                         error={errors.name}
                         required
+                        placeholder="Enter your full name"
                     />
                 </div>
 
@@ -117,6 +148,7 @@ export default function RegisterForm() {
                         onChange={handleChange}
                         error={errors.email}
                         required
+                        placeholder="your.email@example.com"
                     />
                 </div>
 
@@ -129,7 +161,11 @@ export default function RegisterForm() {
                         onChange={handleChange}
                         error={errors.password}
                         required
+                        placeholder="••••••••"
                     />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Password must be at least 8 characters long
+                    </p>
                 </div>
 
                 <div>
@@ -141,6 +177,7 @@ export default function RegisterForm() {
                         onChange={handleChange}
                         error={errors.confirmPassword}
                         required
+                        placeholder="••••••••"
                     />
                 </div>
 

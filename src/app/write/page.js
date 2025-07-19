@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { stackServerApp } from "@/src/stack";
 import WriteForm from "@/src/components/Write/WriteForm";
 
@@ -8,11 +7,8 @@ export const metadata = {
 };
 
 export default async function WritePage() {
+  // The middleware will handle authentication check and redirection
   const user = await stackServerApp.getUser();
-  
-  if (!user) {
-    redirect("/handler/sign-in");
-  }
 
   return (
     <main className="min-h-screen bg-light dark:bg-dark">
@@ -26,7 +22,7 @@ export default async function WritePage() {
               Share your thoughts, experiences, and insights with the community.
             </p>
           </div>
-          
+
           <WriteForm />
         </div>
       </div>

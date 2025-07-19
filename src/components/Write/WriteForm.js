@@ -1,14 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { createPost } from "@/src/lib/actions/posts";
+import { createPost, updatePost } from "@/src/lib/actions/posts";
 import { useUI } from "@/src/contexts/UIContext";
-import TextEditor from "@/src/components/Editor/TextEditor";
+import AutoSaveEditor from "@/src/components/Editor/AutoSaveEditor";
 import Button from "@/src/components/UI/Button";
 import Input from "@/src/components/UI/Input";
 import { cx } from "@/src/utils";
+import Image from "next/image";
 
-const WriteForm = ({ initialData = null }) => {
+const WriteForm = ({ initialData = null, isEditing = false }) => {
   const [title, setTitle] = useState(initialData?.title || "");
   const [content, setContent] = useState(initialData?.content || "");
   const [excerpt, setExcerpt] = useState(initialData?.excerpt || "");
@@ -16,15 +17,34 @@ const WriteForm = ({ initialData = null }) => {
   const [tags, setTags] = useState(initialData?.tags?.join(", ") || "");
   const [status, setStatus] = useState(initialData?.status || "draft");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [errors, setErrors] = useState({});
+
   const { showToast } = useUI();
   const router = useRouter();
 
+  // Validate form fields
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!title.trim()) {
+      newErrors.title = "Title is required";
+    }
+
+    if (!content.trim()) {
+      newErrors.content = "Content is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!title.trim() || !content.trim()) {
-      showToast("Title and content are required", "error");
+
+    if (!validateForm()) {
+      // Show the first error as a toast
+      const firstError = Object.values(errors)[0];
+      showToast(firstError, "error");
       return;
     }
 
@@ -39,11 +59,33 @@ const WriteForm = ({ initialData = null }) => {
       formData.append("tags", tags);
       formData.append("status", status);
 
-      await createPost(formData);
-      showToast("Post created successfully!", "success");
+      if (isEditing && initialData?.id) {
+        // Update existing post
+        await updatePost(initialData.id, formData);
+        showToast("Post updated successfully!", "success");
+
+        // Redirect based on status
+        if (status === "published") {
+          // If published, redirect to the post view
+          router.push(`/posts/${initialData.slug}`);
+        } else {
+          // If draft, redirect to dashboard
+          router.push("/dashboard");
+        }
+      } else {
+        // Create new post
+        await createPost(formData);
+        showToast("Post created successfully!", "success");
+
+        // The createPost function handles redirection based on status
+        // If we're still here, it means there was an issue with redirection
+        if (status === "published") {
+          router.push("/dashboard");
+        }
+      }
     } catch (error) {
-      console.error("Error creating post:", error);
-      showToast(error.message || "Failed to create post", "error");
+      console.error(isEditing ? "Error updating post:" : "Error creating post:", error);
+      showToast(error.message || (isEditing ? "Failed to update post" : "Failed to create post"), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -57,6 +99,17 @@ const WriteForm = ({ initialData = null }) => {
   };
 
   const handlePublish = () => {
+    // Validate required fields before publishing
+    if (!title.trim()) {
+      showToast("Title is required", "error");
+      return;
+    }
+
+    if (!content.trim()) {
+      showToast("Content is required", "error");
+      return;
+    }
+
     setStatus("published");
     setTimeout(() => {
       document.getElementById("submit-form").click();
@@ -66,33 +119,122 @@ const WriteForm = ({ initialData = null }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <Input
-          label="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter your story title..."
-          className="text-2xl font-bold border-none shadow-none p-0 focus:ring-0"
-          required
-        />
+        <div>
+          <Input
+            label="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter your story title..."
+            className={`text-2xl font-bold border-none shadow-none p-0 focus:ring-0 ${errors.title ? 'border-red-500' : ''}`}
+            required
+          />
+          {errors.title && (
+            <p className="mt-1 text-sm text-red-500">{errors.title}</p>
+          )}
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <Input
-          label="Cover Image URL (optional)"
-          value={coverImage}
-          onChange={(e) => setCoverImage(e.target.value)}
-          placeholder="https://example.com/image.jpg"
-          type="url"
-        />
+        <div className="space-y-4">
+          <div className="flex flex-col">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Cover Image
+            </label>
+            <div className="flex items-center gap-4">
+              <Input
+                value={coverImage}
+                onChange={(e) => setCoverImage(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                type="url"
+              />
+              <span className="text-gray-500 dark:text-gray-400">or</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+
+                  try {
+                    // Create form data for upload
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    // Upload the file
+                    const { uploadImage } = await import('@/src/lib/actions/uploads');
+                    const response = await uploadImage(formData);
+
+                    // Set the cover image URL
+                    setCoverImage(response.url);
+                  } catch (error) {
+                    console.error('Error uploading cover image:', error);
+                    showToast('Failed to upload cover image', 'error');
+                  }
+                }}
+                className="block w-full text-sm text-gray-500 dark:text-gray-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-accent file:text-white
+                  hover:file:bg-accent/80"
+              />
+            </div>
+          </div>
+
+          {coverImage && (
+            <div className="mt-4">
+              <div className="relative w-full h-48 rounded-lg overflow-hidden">
+                <Image
+                  src={coverImage}
+                  alt="Cover preview"
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <TextEditor
+      <div className={`bg-white dark:bg-gray-900 rounded-lg shadow-sm border ${errors.content ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'}`}>
+        <AutoSaveEditor
           value={content}
-          onChange={setContent}
+          onChange={(newContent) => {
+            setContent(newContent);
+            if (newContent.trim() && errors.content) {
+              setErrors({ ...errors, content: null });
+            }
+          }}
+          onSave={async (content) => {
+            try {
+              // Save draft using server action
+              const { saveDraft } = await import('@/src/lib/actions/drafts');
+              await saveDraft({
+                postId: initialData?.id || null,
+                title,
+                content,
+                excerpt,
+                coverImage,
+                tags,
+              });
+              return true;
+            } catch (error) {
+              console.error('Error saving draft:', error);
+              return false;
+            }
+          }}
           placeholder="Tell your story..."
           autoFocus
+          autoSaveInterval={30000} // Save every 30 seconds
+          postId={initialData?.id || null}
+          postTitle={title}
+          postExcerpt={excerpt}
+          postCoverImage={coverImage}
+          postTags={tags}
         />
+        {errors.content && (
+          <p className="mt-1 text-sm text-red-500 p-2">{errors.content}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -127,7 +269,7 @@ const WriteForm = ({ initialData = null }) => {
         <div className="text-sm text-gray-500 dark:text-gray-400">
           {content.trim().split(/\s+/).length} words
         </div>
-        
+
         <div className="flex gap-3">
           <Button
             type="button"
@@ -138,7 +280,7 @@ const WriteForm = ({ initialData = null }) => {
           >
             Save Draft
           </Button>
-          
+
           <Button
             type="button"
             variant="primary"

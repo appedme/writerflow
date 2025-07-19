@@ -42,7 +42,7 @@ export async function createPost(formData) {
       content,
       excerpt: excerpt || content.substring(0, 200) + "...",
       coverImage,
-      status,
+      published: status === "published" ? 1 : 0,
       authorId: user.id,
       readingTime,
       publishedAt: status === "published" ? new Date() : null,
@@ -53,18 +53,18 @@ export async function createPost(formData) {
       for (const tagName of tagNames) {
         // Check if tag exists
         let tag = await db.select().from(tags).where(eq(tags.name, tagName)).limit(1);
-        
+
         if (tag.length === 0) {
           // Create new tag
           const tagId = nanoid();
           const tagSlug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-          
+
           await db.insert(tags).values({
             id: tagId,
             name: tagName,
             slug: tagSlug,
           });
-          
+
           tag = [{ id: tagId }];
         }
 
@@ -79,7 +79,7 @@ export async function createPost(formData) {
 
     revalidatePath("/");
     revalidatePath("/dashboard");
-    
+
     if (status === "published") {
       redirect(`/posts/${slug}-${postId.slice(-6)}`);
     } else {
@@ -106,27 +106,66 @@ export async function updatePost(postId, formData) {
   const content = formData.get("content");
   const excerpt = formData.get("excerpt");
   const coverImage = formData.get("coverImage");
+  const tagNames = formData.get("tags")?.split(",").map(tag => tag.trim()) || [];
   const status = formData.get("status") || "draft";
 
   const readingTime = calculateReadingTime(content);
 
   try {
+    // Preserve the original slug to maintain SEO benefits
+    // Only update the post content and metadata
     await db.update(posts)
       .set({
         title,
         content,
         excerpt: excerpt || content.substring(0, 200) + "...",
         coverImage,
-        status,
+        published: status === "published" ? 1 : 0,
         readingTime,
         publishedAt: status === "published" && !post[0].publishedAt ? new Date() : post[0].publishedAt,
         updatedAt: new Date(),
       })
       .where(eq(posts.id, postId));
 
+    // Handle tags update
+    if (tagNames.length > 0) {
+      // First, remove existing tag associations
+      await db.delete(postTags).where(eq(postTags.postId, postId));
+
+      // Then add the new tags
+      for (const tagName of tagNames) {
+        // Check if tag exists
+        let tag = await db.select().from(tags).where(eq(tags.name, tagName)).limit(1);
+
+        if (tag.length === 0) {
+          // Create new tag
+          const tagId = nanoid();
+          const tagSlug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+          await db.insert(tags).values({
+            id: tagId,
+            name: tagName,
+            slug: tagSlug,
+          });
+
+          tag = [{ id: tagId }];
+        }
+
+        // Link post to tag
+        await db.insert(postTags).values({
+          id: nanoid(),
+          postId,
+          tagId: tag[0].id,
+        });
+      }
+    }
+
+    // Revalidate all relevant paths to ensure updated content is shown
     revalidatePath("/");
     revalidatePath("/dashboard");
     revalidatePath(`/posts/${post[0].slug}`);
+
+    return post[0];
   } catch (error) {
     console.error("Error updating post:", error);
     throw new Error("Failed to update post");
@@ -154,10 +193,90 @@ export async function deletePost(postId) {
   }
 }
 
+export async function togglePostStatus(postId) {
+  const user = await stackServerApp.getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  const post = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+  if (post.length === 0 || post[0].authorId !== user.id) {
+    throw new Error("Post not found or unauthorized");
+  }
+
+  const currentStatus = post[0].published === 1;
+  const newStatus = !currentStatus;
+
+  try {
+    await db.update(posts)
+      .set({
+        published: newStatus ? 1 : 0,
+        publishedAt: newStatus && !post[0].publishedAt ? new Date() : post[0].publishedAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(posts.id, postId));
+
+    revalidatePath("/");
+    revalidatePath("/dashboard");
+    if (post[0].slug) {
+      revalidatePath(`/posts/${post[0].slug}`);
+    }
+
+    return {
+      id: postId,
+      published: newStatus,
+      slug: post[0].slug
+    };
+  } catch (error) {
+    console.error("Error toggling post status:", error);
+    throw new Error("Failed to update post status");
+  }
+}
+
+export async function schedulePostPublishing(postId, publishDate) {
+  const user = await stackServerApp.getUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  const post = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
+  if (post.length === 0 || post[0].authorId !== user.id) {
+    throw new Error("Post not found or unauthorized");
+  }
+
+  // Validate that the publish date is in the future
+  const scheduledDate = new Date(publishDate);
+  const now = new Date();
+
+  if (scheduledDate <= now) {
+    throw new Error("Scheduled publish date must be in the future");
+  }
+
+  try {
+    await db.update(posts)
+      .set({
+        // Store the scheduled date but keep the post unpublished for now
+        scheduledPublishAt: scheduledDate,
+        updatedAt: new Date(),
+      })
+      .where(eq(posts.id, postId));
+
+    revalidatePath("/dashboard");
+
+    return {
+      id: postId,
+      scheduledPublishAt: scheduledDate
+    };
+  } catch (error) {
+    console.error("Error scheduling post:", error);
+    throw new Error("Failed to schedule post publishing");
+  }
+}
+
 export async function incrementPostView(postId, ipAddress, userAgent) {
   try {
     const user = await stackServerApp.getUser();
-    
+
     await db.insert(postViews).values({
       id: nanoid(),
       postId,

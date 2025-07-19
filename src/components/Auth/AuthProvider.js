@@ -115,14 +115,46 @@ export function AuthProvider({ children }) {
 
     const register = async (email, password, name) => {
         try {
-            const { user, session } = await stackClient.signUp({ email, password, name });
+            // Attempt to register the user with Stack
+            const { user, session } = await stackClient.signUp({
+                email,
+                password,
+                name,
+                // You can add additional user metadata here if needed
+                userMetadata: {
+                    registeredAt: new Date().toISOString(),
+                }
+            });
+
             if (session) {
                 setSessionExpiry(new Date(session.expiresAt));
             }
+
+            // Sync user with our database
+            // This is handled by the onAuthStateChange listener,
+            // but we'll also do it here to ensure immediate consistency
+            if (user) {
+                const userData = {
+                    name: user.name || name,
+                    email: user.email || email,
+                    imageUrl: user.imageUrl || "",
+                };
+
+                await createOrUpdateUser(user.id, userData);
+            }
+
             return user;
         } catch (error) {
             console.error("Registration error:", error);
-            throw error;
+
+            // Provide more user-friendly error messages
+            if (error.message?.includes("already exists")) {
+                throw new Error("An account with this email already exists. Please log in instead.");
+            } else if (error.message?.includes("password")) {
+                throw new Error("Password doesn't meet security requirements. Please use a stronger password.");
+            } else {
+                throw error;
+            }
         }
     };
 

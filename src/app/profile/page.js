@@ -1,6 +1,7 @@
 import { stackServerApp } from "@/src/stack";
 import { getUserByStackId } from "@/src/lib/actions/users";
 import ProfileForm from "@/src/components/Profile/ProfileForm";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Profile Settings",
@@ -8,8 +9,15 @@ export const metadata = {
 };
 
 export default async function ProfilePage() {
-  // The middleware will handle authentication check and redirection
+  // Get the authenticated user
   const user = await stackServerApp.getUser();
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    redirect("/login?redirect=/profile");
+  }
+
+  // Fetch user profile data from our database
   const userProfile = await getUserByStackId(user.id);
 
   return (
@@ -25,7 +33,15 @@ export default async function ProfilePage() {
             </p>
           </div>
 
-          <ProfileForm user={user} userProfile={userProfile} />
+          {userProfile ? (
+            <ProfileForm user={user} userProfile={userProfile} />
+          ) : (
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <p className="text-center text-gray-600 dark:text-gray-400">
+                Loading profile information...
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </main>

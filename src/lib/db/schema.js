@@ -30,6 +30,7 @@ export const posts = sqliteTable("posts", {
   readingTime: integer("reading_time"), // in minutes
   views: integer("views").default(0),
   publishedAt: integer("published_at", { mode: "timestamp" }),
+  scheduledPublishAt: integer("scheduled_publish_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`CURRENT_TIMESTAMP`),
   authorId: text("author_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -136,5 +137,18 @@ export const postViews = sqliteTable("post_views", {
   userId: text("user_id").references(() => users.id), // null for anonymous views
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Drafts table (for auto-save and versioning)
+export const drafts = sqliteTable("drafts", {
+  id: text("id").primaryKey(),
+  postId: text("post_id").references(() => posts.id, { onDelete: "cascade" }), // null for new posts
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: text("title"),
+  content: text("content").notNull(),
+  excerpt: text("excerpt"),
+  coverImage: text("cover_image"),
+  tags: text("tags"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`CURRENT_TIMESTAMP`),
 });
